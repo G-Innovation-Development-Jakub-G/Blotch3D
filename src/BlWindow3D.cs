@@ -1,19 +1,27 @@
 ﻿/*
-Blotch3D Copyright 1999-2018 Kelly Loum
+Blotch3D (formerly GWin3D) Copyright (c) 1999-2018 Kelly Loum, all rights reserved except those granted in the following license.
 
-Blotch3D is a C# 3D graphics library that notably simplifies 3D development.
+Microsoft Public License (MS-PL)
+This license governs use of the accompanying software. If you use the software, you
+accept this license. If you do not accept the license, do not use the software.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation
-files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy,
-modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following conditions:
+1. Definitions
+The terms "reproduce," "reproduction," "derivative works," and "distribution" have the
+same meaning here as under U.S. copyright law.
+A "contribution" is the original software, or any additions or changes to the software.
+A "contributor" is any person that distributes its contribution under this license.
+"Licensed patents" are a contributor's patent claims that read directly on its contribution.
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+2. Grant of Rights
+(A) Copyright Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, each contributor grants you a non-exclusive, worldwide, royalty-free copyright license to reproduce its contribution, prepare derivative works of its contribution, and distribute its contribution or any derivative works that you create.
+(B) Patent Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, each contributor grants you a non-exclusive, worldwide, royalty-free license under its licensed patents to make, have made, use, sell, offer for sale, import, and/or otherwise dispose of its contribution in the software or derivative works of the contribution in the software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+3. Conditions and Limitations
+(A) No Trademark License- This license does not grant you rights to use any contributors' name, logo, or trademarks.
+(B) If you bring a patent claim against any contributor over patents that you claim are infringed by the software, your patent license from such contributor to the software ends automatically.
+(C) If you distribute any portion of the software, you must retain all copyright, patent, trademark, and attribution notices that are present in the software.
+(D) If you distribute any portion of the software in source code form, you may do so only under this license by including a complete copy of this license with your distribution. If you distribute any portion of the software in compiled or object code form, you may only do so under a license that complies with this license.
+(E) The software is licensed "as-is." You bear the risk of using it. The contributors give no express warranties, guarantees or conditions. You may have additional consumer rights under your local laws which this license cannot change. To the extent permitted under your local laws, the contributors exclude the implied warranties of merchantability, fitness for a particular purpose and non-infringement.
 */
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -29,28 +37,14 @@ using System.Windows.Forms;
 namespace Blotch
 {
 	/// <summary>
-	/// To create the 3D window, derive a class from BlWindow3D. Instantiate it and call its Run method from the same thread.
-	/// When you instantiate it, it will create the 3D window and a separate thread we’ll
-	/// call the “3D thread”. All model meshes, textures, fonts, etc. used by the 3D hardware must be created and accessed
-	/// by the 3D thread, because supported hardware platforms require it. Its safest to assume all Blotch3D and MonoGame
-	/// objects must be created and accessed in the 3D thread. Although it may apparently work in certain circumstances,
-	/// do not have the window class constructor create or access any of these things, or have its instance initializers
-	/// do it, because neither are executed by the 3D thread. To specify code to be executed in the context of the 3D
-	/// thread, you can override the Setup, FrameProc, and/or FrameDraw methods, and other threads can pass a delegate
-	/// to the EnqueueCommand and EnqueueCommandBlocking methods. When you override the Setup method it will be called
-	/// once when the object is first created. You might put time-consuming overall initialization code in there like
-	/// graphics setting initializations if different from the defaults, loading of persistent content (models, fonts,
-	/// etc.), creation of persistent BlSprites, etc. Do not draw things in the 3D window from the setup method. When you
-	/// override the FrameProc method it will be called once per frame (see BlGraphicsDeviceManager.FramePeriod). You can
-	/// put code there that should be called periodically. This is typically code that must run at a constant rate, like
-	/// code that implements smooth sprite and camera movement, etc. Do not draw things in the 3D window from the FrameProc
-	/// method. When you override the FrameDraw method, the 3D thread calls PrepareDraw just before calling FrameDraw once
-	/// per frame, but more rarely if CPU is being exhausted. This is where you put drawing code (BlSprite.Draw,
-	/// BlGraphicsDeviceManager.DrawText, etc.). Finally, if you are developing a multithreaded app, when other threads
-	/// need to create, change, or destroy 3D resources or otherwise do something in a thread-safe way with the 3D thread,
-	/// they can queue a delegate to EnqueueCommand or EnqueueCommandBlocking, which makes sure the code is done by the 3D
-	/// thread sequentially at the end of the current FrameProc. If user input to the 3D window needs to be conveyed back
-	/// to app threads, you can create thread-safe queues for that as well. This inherits from MonoGame's "Game" class.
+	/// To make a 3D window, you must derive a class from BlWindow3D and override the #Setup, #FrameProc, and #FrameDraw methods.
+	/// When it comes time to open the 3D window, you instantiate that class and call its “Run” method from the same thread
+	/// that instantiated it. The Run method will call the #Setup, #FrameProc, and #FrameDraw methods when appropriate, and not
+	/// return until the window closes. All code that accesses 3D resources must be done in that thread, including code that
+	/// creates and uses all Blotch3D and MonoGame objects. Note that this rule also applies to any code structure that may
+	/// internally use other threads, as well. Do not use Parallel, async, etc. code structures that access 3D resources.
+	/// Other threads that need to access 3D resources can do so by passing a delegate to #EnqueueCommand and
+	/// #EnqueueCommandBlocking.
 	/// </summary>
 	public class BlWindow3D : Game
 	{
@@ -61,22 +55,29 @@ namespace Blotch
 		/// </summary>
 		public BlGraphicsDeviceManager Graphics;
 
+
+
+		List<BlSprite> FrameProcSprites = new List<BlSprite>();
+		Mutex FrameProcSpritesMutex = new Mutex();
+
+
 		/// <summary>
 		/// The GUI controls for this window. See BlGuiControl for details.
 		/// </summary>
 		public ConcurrentDictionary<string, BlGuiControl> GuiControls = new ConcurrentDictionary<string, BlGuiControl>();
 
 		/// <summary>
-		/// See EnqueueCommand, EnqueueCommandBlocking, and BlWindow3D for more info
+		/// See #EnqueueCommand, #EnqueueCommandBlocking, and BlWindow3D for more info
 		/// </summary>
 		/// <param name="win">The BlWindow3D object</param>
 		public delegate void Command(BlWindow3D win);
-		class BlockingCommand
+		class QueueCommand
 		{
 			public Command command=null;
 			public AutoResetEvent evnt = null;
 		}
-		BlockingCollection<BlockingCommand> Queue = new BlockingCollection<BlockingCommand>();
+		Mutex QueueMutex = new Mutex();
+		Queue<QueueCommand> Queue = new Queue<QueueCommand>();
 
 #if WINDOWS
 		/// <summary>
@@ -100,39 +101,54 @@ namespace Blotch
 		/// Since all operations accessing 3D resources must be done by the 3D thread,
 		/// this allows other threads to
 		/// send commands to execute in the 3D thread. For example, you might need another thread to be able to 
-		/// create, move, and delete BlSprites. You can also use this for general thred safety of various operations.
+		/// create, move, and delete BlSprites. You can also use this for general thread safety of various operations.
 		/// This method does not block.
-		/// Also see BlWindow3D and the (blocking) EnqueueCommandBlocking for more details.
+		/// Also see BlWindow3D and the (blocking) #EnqueueCommandBlocking for more details.
 		/// </summary>
 		/// <param name="cmd"></param>
 		public void EnqueueCommand(Command cmd)
 		{
-			var Qcmd = new BlockingCommand()
+			var Qcmd = new QueueCommand()
 			{
 				command = cmd
 			};
-
-			Queue.Add(Qcmd);
+			try
+			{
+				QueueMutex.WaitOne();
+				Queue.Enqueue(Qcmd);
+			}
+			finally
+			{
+				QueueMutex.ReleaseMutex();
+			}
 		}
 		/// <summary>
 		/// Since all operations accessing 3D resources must be done by the 3D thread,
 		/// this allows other threads to
 		/// send commands to execute in the 3D thread. For example, you might need another thread to be able to 
-		/// create, move, and delete BlSprites. You can also use this for general thred safety of various operations.
+		/// create, move, and delete BlSprites. You can also use this for general thread safety of various operations.
 		/// This method blocks until the command has executed.
-		/// Also see BlWindow3D and the (non-blocking) EnqueueCommand for more details.
+		/// Also see BlWindow3D and the (non-blocking) #EnqueueCommand for more details.
 		/// </summary>
 		/// <param name="cmd"></param>
 		public void EnqueueCommandBlocking(Command cmd)
 		{
 			var myEvent = new AutoResetEvent(false);
-			var Qcmd = new BlockingCommand()
+			var Qcmd = new QueueCommand()
 			{
 				command = cmd,
 				evnt = myEvent
 			};
 
-			Queue.Add(Qcmd);
+			try
+			{
+				QueueMutex.WaitOne();
+				Queue.Enqueue(Qcmd);
+			}
+			finally
+			{
+				QueueMutex.ReleaseMutex();
+			}
 			myEvent.WaitOne();
 		}
 #if WINDOWS
@@ -204,15 +220,79 @@ namespace Blotch
 
 			ServiceGuiControls();
 
-			// execute any pending commands, in order.
-			while (Queue.TryTake(out BlockingCommand bcmd, 0))
+			ExecutePendingCommands();
+
+			ExecuteSpriteFrameProcs();
+		}
+		/// <summary>
+		/// Used internally
+		/// </summary>
+		/// <param name="s"></param>
+		public void FrameProcSpritesAdd(BlSprite s)
+		{
+			try
 			{
-				if(bcmd.command != null)
+				FrameProcSpritesMutex.WaitOne();
+				FrameProcSprites.Add(s);
+			}
+			finally
+			{
+				FrameProcSpritesMutex.ReleaseMutex();
+			}
+		}
+		/// <summary>
+		/// Used internally
+		/// </summary>
+		/// <param name="s"></param>
+		public void FrameProcSpritesRemove(BlSprite s)
+		{
+			try
+			{
+				FrameProcSpritesMutex.WaitOne();
+				FrameProcSprites.Remove(s);
+			}
+			finally
+			{
+				FrameProcSpritesMutex.ReleaseMutex();
+			}
+		}
+		void ExecuteSpriteFrameProcs()
+		{
+			try
+			{
+				FrameProcSpritesMutex.WaitOne();
+
+				foreach (var s in FrameProcSprites)
 				{
-					bcmd.command(this);
-					if (bcmd.evnt != null)
-						bcmd.evnt.Set();
+					s.ExecuteFrameProc();
 				}
+			}
+			finally
+			{
+				FrameProcSpritesMutex.ReleaseMutex();
+			}
+		}
+		void ExecutePendingCommands()
+		{
+			// execute any pending commands, in order.
+			QueueCommand bcmd;
+			try
+			{
+				QueueMutex.WaitOne();
+				while (Queue.Count > 0)
+				{
+					bcmd = Queue.Dequeue();
+					if (bcmd.command != null)
+					{
+						bcmd.command(this);
+						if (bcmd.evnt != null)
+							bcmd.evnt.Set();
+					}
+				}
+			}
+			finally
+			{
+				QueueMutex.ReleaseMutex();
 			}
 		}
 
@@ -240,15 +320,15 @@ namespace Blotch
 		}
 		void DrawGuiControls()
 		{
-			if (Graphics.MySpriteBatch == null)
-				Graphics.MySpriteBatch = new SpriteBatch(Graphics.GraphicsDevice);
+			if (Graphics.SpriteBatch == null)
+				Graphics.SpriteBatch = new SpriteBatch(Graphics.GraphicsDevice);
 
-			Graphics.MySpriteBatch.Begin();
+			Graphics.SpriteBatch.Begin();
 			foreach (var ctrl in GuiControls)
 			{
-				Graphics.MySpriteBatch.Draw(ctrl.Value.Texture, ctrl.Value.Position, Color.White);
+				Graphics.SpriteBatch.Draw(ctrl.Value.Texture, ctrl.Value.Position, Color.White);
 			}
-			Graphics.MySpriteBatch.End();
+			Graphics.SpriteBatch.End();
 		}
 		bool ServiceGuiControls()
 		{
@@ -304,7 +384,7 @@ namespace Blotch
 
 			base.Dispose();
 
-			Queue.Dispose();
+			QueueMutex.Dispose();
 			Graphics.Dispose();
 #if WINDOWS
 			WindowForm.Dispose();

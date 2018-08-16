@@ -1,19 +1,27 @@
 ﻿/*
-Blotch3D Copyright 1999-2018 Kelly Loum
+Blotch3D (formerly GWin3D) Copyright (c) 1999-2018 Kelly Loum, all rights reserved except those granted in the following license.
 
-Blotch3D is a C# 3D graphics library that notably simplifies 3D development.
+Microsoft Public License (MS-PL)
+This license governs use of the accompanying software. If you use the software, you
+accept this license. If you do not accept the license, do not use the software.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation
-files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy,
-modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following conditions:
+1. Definitions
+The terms "reproduce," "reproduction," "derivative works," and "distribution" have the
+same meaning here as under U.S. copyright law.
+A "contribution" is the original software, or any additions or changes to the software.
+A "contributor" is any person that distributes its contribution under this license.
+"Licensed patents" are a contributor's patent claims that read directly on its contribution.
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+2. Grant of Rights
+(A) Copyright Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, each contributor grants you a non-exclusive, worldwide, royalty-free copyright license to reproduce its contribution, prepare derivative works of its contribution, and distribute its contribution or any derivative works that you create.
+(B) Patent Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, each contributor grants you a non-exclusive, worldwide, royalty-free license under its licensed patents to make, have made, use, sell, offer for sale, import, and/or otherwise dispose of its contribution in the software or derivative works of the contribution in the software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+3. Conditions and Limitations
+(A) No Trademark License- This license does not grant you rights to use any contributors' name, logo, or trademarks.
+(B) If you bring a patent claim against any contributor over patents that you claim are infringed by the software, your patent license from such contributor to the software ends automatically.
+(C) If you distribute any portion of the software, you must retain all copyright, patent, trademark, and attribution notices that are present in the software.
+(D) If you distribute any portion of the software in source code form, you may do so only under this license by including a complete copy of this license with your distribution. If you distribute any portion of the software in compiled or object code form, you may only do so under a license that complies with this license.
+(E) The software is licensed "as-is." You bear the risk of using it. The contributors give no express warranties, guarantees or conditions. You may have additional consumer rights under your local laws which this license cannot change. To the extent permitted under your local laws, the contributors exclude the implied warranties of merchantability, fitness for a particular purpose and non-infringement.
 */
 
 
@@ -21,22 +29,23 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEAL
 /*
 TODO:
 
+Trails
+More models, w/LODs (cone, cylinder, box)
+heightfield w/ normals & texture coords
+
+
 Write a fairly elaborate program to tweak and test everything
 
-Copy generic text from GWin3D doc to Blotch3D doc
+Copy more generic text from GWin3D doc to Blotch3D doc
 
-Add a library of common models w/LODs
-Blob
-Box
-Tetrahedron
-Torus
 
-Model helpers:
-Extend (takes a 2D shape and extends it in Z)
-Terrain generator/heightfield
+Add shader that offsets and scales texture (applies 2d matrix, and then normalizes coords between 0 and 1)
 
-Doc:
-Add a troubleshooting section
+bumpmaps
+
+
+Extrude (takes a 2D shape and extends it in Z)
+
 
 Examples:
 BlotchExample01_Basic (base code for all examples. Displays 2D text and a single 3D object)
@@ -67,6 +76,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -75,60 +85,61 @@ namespace Blotch
 {
 	/// <summary>
 	/// This holds everything having to do with an output device. BlWindow3D creates one of these for itself.
+	/// This derives from MonoGame GraphicsDeviceManager.
 	/// </summary>
 	public class BlGraphicsDeviceManager : GraphicsDeviceManager, ICloneable
 	{
 		/// <summary>
 		/// This is the view matrix. Normally you would use the higher-level functions
-		/// Eye, LookAt, Up, CameraToSprite, and DoDefaultGui intead of changing this directly.
+		/// #Eye, #LookAt, #CameraUp, #SetCameraToSprite, and #DoDefaultGui intead of changing this directly.
 		/// </summary>
 		public Microsoft.Xna.Framework.Matrix View;
 
 		/// <summary>
 		/// The Projection matrix. Normally you would use the higher-level functions
-		/// Zoom, Aspect, NearClip, or FarClip intead of changing this directly.
+		/// #Zoom, #Aspect, #NearClip, or #FarClip intead of changing this directly.
 		/// </summary>
 		public Microsoft.Xna.Framework.Matrix Projection;
 
 		/// <summary>
-		/// The vector between Eye and LookAt. Writes to Eye and LookAt and calls to
-		/// SetCameraToSprite cause this to be updated. Also
-		/// see CameraForwardNormalized and CameraForwardMag.
+		/// The vector between #Eye and #LookAt. Writes to #Eye and #LookAt and calls to
+		/// #SetCameraToSprite cause this to be updated. Also
+		/// see #CameraForwardNormalized and #CameraForwardMag.
 		/// </summary>
 		public Vector3 CameraForward { get; private set; }
 
 		/// <summary>
-		/// Normalized form of CameraForward.  Writes to Eye and LookAt, and calls to
-		/// SetCameraToSprite cause this to be updated. Also see CameraForward and CameraForwardMag.
+		/// Normalized form of #CameraForward.  Writes to #Eye and #LookAt, and calls to
+		/// #SetCameraToSprite cause this to be updated. Also see #CameraForward and #CameraForwardMag.
 		/// </summary>
 		public Vector3 CameraForwardNormalized { get; private set; }
 
 		/// <summary>
-		/// The magnitude of CameraForward.  Writes to Eye and LookAt, and calls to
-		/// SetCameraToSprite cause this to be updated. Also see CameraForward and CameraForwardNormalized.
+		/// The magnitude of #CameraForward.  Writes to #Eye and #LookAt, and calls to
+		/// #SetCameraToSprite cause this to be updated. Also see #CameraForward and #CameraForwardNormalized.
 		/// </summary>
 		public float CameraForwardMag { get; private set; }
 
 		/// <summary>
-		/// Camera Up vector. Initially set to +Z. ResetCamera and SetCameraToSprite updates this.
+		/// Camera Up vector. Initially set to +Z. #ResetCamera and #SetCameraToSprite updates this.
 		/// </summary>
 		public Vector3 CameraUp;
 
 		/// <summary>
-		/// Camera Right vector.  Writes to Eye and LookAt, and calls to
-		/// SetCameraToSprite cause this to be updated.
+		/// Camera Right vector.  Writes to #Eye and #LookAt, and calls to
+		/// #SetCameraToSprite cause this to be updated.
 		/// </summary>
 		public Vector3 CameraRight { get; private set; }
 
 		/// <summary>
-		/// Caues DoDefaultGui to limit the Z component of CameraForwardNormalized above this value.
-		/// For example, set this to zero so that DoDefaultGui won't allow the camera to look downward
+		/// Causes #DoDefaultGui to prevent the Z component of #CameraForwardNormalized from falling below this value.
+		/// For example, set this to zero so that #DoDefaultGui won't allow the camera to look downward
 		/// </summary>
 		public double DefGuiMinLookZ = -1;
 
 		/// <summary>
-		/// Caues DoDefaultGui to limit the Z component of CameraForwardNormalized below this value.
-		/// For example, set this to zero so that DoDefaultGui won't allow the camera to look upward
+		/// Caues #DoDefaultGui to prevent the Z component of #CameraForwardNormalized from rising above this value.
+		/// For example, set this to zero so that #DoDefaultGui won't allow the camera to look upward
 		/// </summary>
 		public double DefGuiMaxLookZ = 1;
 
@@ -153,7 +164,7 @@ namespace Blotch
 		};
 
 		/// <summary>
-		/// The current camera position. Note: To change the camera position, set TargetEye. Also see CameraSpeed.
+		/// The current camera position. Note: To change the camera position, set #TargetEye. Also see #CameraSpeed.
 		/// </summary>
 		public Vector3 Eye
 		{
@@ -170,7 +181,7 @@ namespace Blotch
 		Vector3 _eye;
 
 		/// <summary>
-		/// The current camera LookAt position. Note: To change the camera LookAt, set TargetLookAt. Also see CameraSpeed.
+		/// The current camera LookAt position. Note: To change the camera LookAt, set #TargetLookAt. Also see #CameraSpeed.
 		/// </summary>
 		public Vector3 LookAt
 		{
@@ -187,18 +198,18 @@ namespace Blotch
 		Vector3 _lookAt;
 
 		/// <summary>
-		/// The point that Eye migrates to, according to CameraSpeed. See Eye for more information.
+		/// The point that #Eye migrates to, according to #CameraSpeed. See #Eye for more information.
 		/// </summary>
 		public Vector3 TargetEye;
 
 		/// <summary>
-		/// The point that LookAt migrates to, according to CameraSpeed. See LookAt for more information.
+		/// The point that #LookAt migrates to, according to #CameraSpeed. See #LookAt for more information.
 		/// </summary>
 		public Vector3 TargetLookAt;
 
 		/// <summary>
-		/// The responsiveness of the camera position to changes in TargetEye and TargetLookAt. Zero means it doesn't respond to
-		/// changes, 1 means it immediately responds. See Eye and LookAt for more information.
+		/// The responsiveness of the camera position to changes in #TargetEye and #TargetLookAt. A value of 0 means it doesn't respond to
+		/// changes, 1 means it immediately responds. See #Eye and #LookAt for more information.
 		/// </summary>
 		public double CameraSpeed = .4;
 
@@ -212,50 +223,50 @@ namespace Blotch
 		}
 
 		/// <summary>
-		/// The field of view, in degrees
+		/// The field of view, in degrees.
 		/// </summary>
 		public double Zoom=45;
 		/// <summary>
-		/// The aspect ratio
+		/// The aspect ratio.
 		/// </summary>
 		public double Aspect=2;
 
 		/// <summary>
-		/// Current aspect ratio. Same as Aspect unless Aspect==0.
+		/// Current aspect ratio. Same as #Aspect unless #Aspect==0.
 		/// </summary>
 		public double CurrentAspect { get; private set; }
 
 		/// <summary>
-		/// The near clipping plane, or 0 = autoclip
+		/// The near clipping plane, or 0 = autoclip.
 		/// </summary>
 		public double NearClip = 0;
 		/// <summary>
-		/// The far clipping plane, or 0 = autoclip
+		/// The far clipping plane, or 0 = autoclip.
 		/// </summary>
 		public double FarClip = 0;
 		/// <summary>
-		/// Current value of near clipping plane. See NearClip.
+		/// Current value of near clipping plane. See #NearClip.
 		/// </summary>
 		public double CurrentNearClip {get; private set;}
 		/// <summary>
-		/// Current value of far clipping plane. See FarClip.
+		/// Current value of far clipping plane. See #FarClip.
 		/// </summary>
 		public double CurrentFarClip { get; private set; }
 
 
 		/// <summary>
-		/// The background color
+		/// The background color.
 		/// </summary>
 		public Microsoft.Xna.Framework.Color ClearColor=new Microsoft.Xna.Framework.Color(0,0,.1f);
 
 		/// <summary>
-		/// Distance to nearest sprite less its radius. Note this is set to a very large number by
-		/// PrepareDraw, and then as Draw is called it is set more reasonably.
+		/// Distance to the nearest sprite, less its radius. Note this is set to a very large number by
+		/// #PrepareDraw, and then as BlWindow3D#FrameDraw is called it is set more reasonably.
 		/// </summary>
 		public double MinCamDistance { get; private set; }
 		/// <summary>
-		/// Distance to farthest sprite plus its radius. Note this is set to a very small number by
-		/// PrepareDraw, and then as Draw is called it is set more reasonably.
+		/// Distance to the farthest sprite, plus its radius. Note this is set to a very small number by
+		/// #PrepareDraw, and then as BlWindow3D#FrameDraw is called it is set more reasonably.
 		/// </summary>
 		public double MaxCamDistance { get; private set; }
 
@@ -264,12 +275,12 @@ namespace Blotch
 		bool LastActive = false;
 
 		/// <summary>
-		/// How fast DoDefaultGui should auto-rotate the scene
+		/// How fast #DoDefaultGui should auto-rotate the scene.
 		/// </summary>
 		public double AutoRotate = 0;
 
 		/// <summary>
-		/// How much time between each frame
+		/// How much time between consecutive frames.
 		/// </summary>
 		public double FramePeriod = 1/60.0;
 
@@ -277,40 +288,45 @@ namespace Blotch
 		double SleepTime = 0;
 
 		/// <summary>
-		/// Information for directional lights. Note: The BasicEffect shader only supports the first three.
+		/// The directional lights. Note: The BasicEffect shader only supports the first three.
 		/// To handle more lights, you'll need to write your own shader.
 		/// </summary>
 		public List<Light> Lights = new List<Light>();
 
 		/// <summary>
-		/// The ambient light color. If null, no ambient light is enabled. Note: There is no ambient color. Both
-		/// diffuse and ambient light illuminates the model's Color. See the EsSprite.Color member.
+		/// The ambient light color. If null, no ambient light is enabled. Note: There is no ambient color
+		/// for a BlSprite. Both diffuse and ambient light illuminates the model's Color. See the BlSprite#Color member.
 		/// </summary>
 		public Vector3? AmbientLightColor = new Vector3(.1f, .1f, .1f);
 
 		/// <summary>
-		/// If not null, color of fog
+		/// If not null, color of fog.
 		/// </summary>
 		public Vector3? FogColor = null;
 
 		/// <summary>
-		/// How far away fog starts. See FogColor
+		/// How far away fog starts. See #FogColor.
 		/// </summary>
 		public float fogStart = 1;
 
 		/// <summary>
-		/// How far away fog ends. See FogColor
+		/// How far away fog ends. See #FogColor.
 		/// </summary>
 		public float fogEnd = 10;
 
-		BlWindow3D Window;
-
-		public SpriteBatch MySpriteBatch=null;
+		/// <summary>
+		/// The BlWindow3D associated with this object.
+		/// </summary>
+		public BlWindow3D Window;
 
 		/// <summary>
-		/// A single BlGraphicsDeviceManager object is automatically created when you create a BlGame object.
+		/// A SpriteBatch for use by certain text and teture drawing methods.
 		/// </summary>
-		/// <param name="window">The BlWindow3D object for which this is to be the GraphicsDeviceManager</param>
+		public SpriteBatch SpriteBatch=null;
+
+		/// <summary>
+		/// </summary>
+		/// <param name="window">The BlWindow3D object for which this is to be the #BlGraphicsDeviceManager</param>
 		public BlGraphicsDeviceManager(BlWindow3D window):base(window)
 		{
 			CreationThread = Thread.CurrentThread.ManagedThreadId;
@@ -335,7 +351,7 @@ namespace Blotch
 		}
 		/// <summary>
 		/// For internal use only. Apps should not normally call this.
-		/// This initializes some values AFTER the BlWindow has been created.
+		/// This initializes some values AFTER the BlWindow3D has been created.
 		/// </summary>
 		public void Initialize()
 		{
@@ -344,7 +360,7 @@ namespace Blotch
 
 			GraphicsDevice.BlendState = BlendState.AlphaBlend;
 			//GraphicsDevice.DepthStencilState = DepthStencilState.Default;
-			//GraphicsProfile = GraphicsProfile.HiDef;
+			GraphicsProfile = GraphicsProfile.HiDef;
 			PreferMultiSampling = true;
 
 			//RasterizerState rasterizerState = new RasterizerState();
@@ -355,9 +371,192 @@ namespace Blotch
 			GraphicsDevice.DepthStencilState = DepthStencilState.Default;
 			ApplyChanges();
 		}
+
+		/// <summary>
+		/// Creates a surface mesh in the form of a triangle list, from the height information in an image. The mesh
+		/// can be assigned to an element of BlSprite#LODs. Also see #CreateMeshSurface.
+		/// </summary>
+		/// <param name="tex">The texture that represents the height (Z) of each vertex.</param>
+		/// <param name="yScale">Multiplier to apply to the height</param>
+		/// <param name="numSignificantBits">Number of pixel bits to use for a pixel's height. The default value of '8' means use
+		/// only the blue channel. Higher values typically would require you to generate the texture programmatically
+		/// or with a special image editor because
+		/// they would include the other 'channels' as more significant bits of the height.
+		/// Specifically, use SetData(int[]).</param>
+		/// <param name="mirrorY">If true, then reflect image's Y</param>
+		/// <returns>A 'terrain' from the specified image</returns>
+		public VertexPositionNormalTexture[] CreateMeshSurfaceFromImage(Texture2D tex, double yScale = 1, bool mirrorY = false, int numSignificantBits = 8)
+		{
+			var width = tex.Width;
+			var height = tex.Height;
+
+			var pixels = new int[width * height];
+			tex.GetData(pixels);
+
+			return CreateMeshSurface(pixels, width, height, yScale, mirrorY, numSignificantBits);
+		}
+		/// <summary>
+		/// Creates a surface mesh in the form of a triangle list, from an int array. The mesh
+		/// can be assigned to an element of BlSprite#LODs. Also see #CreateMeshSurfaceFromImage.
+		/// </summary>
+		/// <param name="heightMap">A one-dimensional array of each vertex's height, where a 2D vertex is indexed with (x + width*y)</param>
+		/// <param name="width">X size</param>
+		/// <param name="height">Y size</param>
+		/// <param name="yScale">Multiplier to apply to the height</param>
+		/// <param name="numSignificantBits">Number of significant bits in each array element (used when creating from image data)</param>
+		/// <param name="mirrorY">Whether to reflect Y</param>
+		/// <returns></returns>
+		public VertexPositionNormalTexture[] CreateMeshSurface
+		(
+			int[] heightMap,
+			int width,
+			int height,
+			double yScale = 1,
+			bool mirrorY = false,
+			int numSignificantBits = 32
+		)
+		{
+			var vertices = new VertexPositionNormalTexture[width * height];
+			var mesh = new VertexPositionNormalTexture[width * height * 6];
+
+			var mask = (ulong)(Math.Pow(2, numSignificantBits)-1);
+
+			// calc Position and textureCoordinates per vertex
+			for(int x=0;x<width;x++)
+			//Parallel.For(0, width, (x) =>
+			{
+				for (int y = 0; y < height; y++)
+				//Parallel.For(0, height, (y) =>
+				{
+					var xNormalized = (float)x / width;
+					var yNormalized = (float)y / height;
+					var ofst = x + width * y;
+
+					ulong pixel;
+					if (mirrorY)
+					{
+						pixel = (ulong)(heightMap[x + (height - y - 1) * width]);
+					}
+					else
+					{
+						pixel = (ulong)(heightMap[x + y * width]);
+					}
+
+					if(pixel!=0)
+					{
+						int zz = 0;
+					}
+					float pixelHeight = (float)((pixel & mask) * yScale);
+
+					vertices[ofst].Position = new Vector3(xNormalized, yNormalized, pixelHeight);
+					vertices[ofst].TextureCoordinate = new Vector2(xNormalized, yNormalized);
+				}
+			}
+			// calculate each vertex normal from the triangles that vertex participates in.
+			for(int x=0;x<width;x++)
+			//Parallel.For(0, width, (x) =>
+			{
+				for (int y = 0; y < height; y++)
+				//Parallel.For(0, height, (y) =>
+				{
+					var ofst = x + width * y;
+
+					var elem00 = vertices[ofst];
+
+					// average of all the normals of the triangles that the vertex is a part of.
+					var totalNormal = new Vector3();
+
+					// add the normals from the upper left quad
+					if (x > 0 && y < height - 1)
+					{
+						var middleVertex = vertices[x - 1 + width * (y + 1)];
+						var rightVertex = vertices[x + width * (y + 1)];
+						var leftVertex = vertices[x - 1 + width * y];
+
+						var rightVector = rightVertex.Position - elem00.Position;
+						var middleVector = middleVertex.Position - elem00.Position;
+						var leftVector = leftVertex.Position - elem00.Position;
+
+						totalNormal += Vector3.Cross(rightVector, middleVector);
+						totalNormal += Vector3.Cross(middleVector, leftVector);
+					}
+					// add the normals from the upper right quad
+					if (x < width - 1 && y < height - 1)
+					{
+						var middleVertex = vertices[x + 1 + width * (y + 1)];
+						var rightVertex = vertices[x + 1 + width * y];
+						var leftVertex = vertices[x + width * (y + 1)];
+
+						var rightVector = rightVertex.Position - elem00.Position;
+						var middleVector = middleVertex.Position - elem00.Position;
+						var leftVector = leftVertex.Position - elem00.Position;
+
+						totalNormal += Vector3.Cross(rightVector, middleVector);
+						totalNormal += Vector3.Cross(middleVector, leftVector);
+					}
+					// add the normals from the lower left quad
+					if (x > 0 && y > 0)
+					{
+						var middleVertex = vertices[x - 1 + width * (y - 1)];
+						var rightVertex = vertices[x - 1 + width * y];
+						var leftVertex = vertices[x + width * (y - 1)];
+
+						var rightVector = rightVertex.Position - elem00.Position;
+						var middleVector = middleVertex.Position - elem00.Position;
+						var leftVector = leftVertex.Position - elem00.Position;
+
+						totalNormal += Vector3.Cross(rightVector, middleVector);
+						totalNormal += Vector3.Cross(middleVector, leftVector);
+					}
+					// add the normals from the lower right quad
+					if (x < width - 1 && y > 0)
+					{
+						var middleVertex = vertices[x + 1 + width * (y - 1)];
+						var rightVertex = vertices[x + width * (y - 1)];
+						var leftVertex = vertices[x + 1 + width * y];
+
+						var rightVector = rightVertex.Position - elem00.Position;
+						var middleVector = middleVertex.Position - elem00.Position;
+						var leftVector = leftVertex.Position - elem00.Position;
+
+						totalNormal += Vector3.Cross(rightVector, middleVector);
+						totalNormal += Vector3.Cross(middleVector, leftVector);
+					}
+
+					totalNormal.Normalize();
+					vertices[ofst].Normal = totalNormal;
+				}
+			}
+
+			// create triangles
+			Parallel.For(0,width-1,(x)=>
+			{
+				Parallel.For(0, height-1, (y) =>
+				{
+					var srcOffset = x + y * width;
+					var destOffset = (x + y * width) * 6;
+
+					var elem00 = vertices[srcOffset];
+					var elem10 = vertices[srcOffset + 1];
+					var elem01 = vertices[srcOffset + width];
+					var elem11 = vertices[srcOffset + width + 1];
+
+					mesh[destOffset] = elem00;
+					mesh[destOffset+1] = elem11;
+					mesh[destOffset+2] = elem10;
+					mesh[destOffset+3] = elem00;
+					mesh[destOffset+4] = elem01;
+					mesh[destOffset+5] = elem11;
+				});
+			});
+
+			return mesh;
+		}
+
+
 		/// <summary>
 		/// Informs the auto-clipping code of an object that should be included in the clipping region. This is
-		/// mainly for internal use. Application code should control clipping with NearClip and FarClip.
+		/// mainly for internal use. Application code should control clipping with #NearClip and #FarClip.
 		/// </summary>
 		/// <param name="s">The sprite that should be included in the auto-clipping code</param>
 		public void ExtendClippingTo(BlSprite s)
@@ -381,10 +580,10 @@ namespace Blotch
 			//Console.WriteLine("{0} {1} {2}", s.Name, s.CamDistance, s.BoundSphere.Value.Radius);
 		}
 		/// <summary>
-		/// Sets a sprite's Matrix to the current camera position and orientation. You could use this to
+		/// Sets a sprite's BlSprite#Matrix to the current camera position and orientation. You could use this to
 		/// implement a HUD, for example. Note: This only works correctly if the sprite has no parent (and is thus drawn
 		/// directly) or it's parents are untransformed. If all you want is to set the sprite's position (but NOT orientation)
-		/// to the camera, then set the sprite's Matrix.Translation = graphics.Eye
+		/// to the camera, then set the sprite's Matrix.Translation = graphics.#Eye
 		/// </summary>
 		/// <param name="sprite">The sprite that should be connected to the camera</param>
 		public void SetSpriteToCamera(BlSprite sprite)
@@ -409,7 +608,7 @@ namespace Blotch
 			CameraUp = sprite.Matrix.Up;
 		}
 		/// <summary>
-		/// Magnifies the current view.
+		/// Sets the #Zoom.
 		/// If dif is zero, then there is no change in zoom.
 		/// Normally one would set zoom with the Zoom field. This is mainly for internal use.
 		/// </summary>
@@ -422,10 +621,10 @@ namespace Blotch
 
 		}
 		/// <summary>
-		/// Migrates the current camera dolly (distance from LookAt) according to dif.
+		/// Migrates the current camera dolly (distance from #LookAt) according to dif.
 		/// If dif is zero, then there is no change in dolly.
 		/// </summary>
-		/// <param name="dif">How much to dolly camera (plus = toward LookAt, minus = away)</param>
+		/// <param name="dif">How much to dolly camera (plus = toward #LookAt, minus = away)</param>
 		public void AdjustCameraDolly(double dif)
 		{
 			var vec = TargetLookAt - TargetEye;
@@ -467,7 +666,7 @@ namespace Blotch
 		}
 
 		/// <summary>
-		/// Adjusts camera rotation about the LookAt point according to difX and difY.
+		/// Adjusts camera rotation about the #LookAt point according to difX and difY.
 		/// if difX and difY are zero, then rotation isn't changed.
 		/// </summary>
 		/// <param name="difX">How much to rotate the camera horizontally</param>
@@ -584,7 +783,7 @@ namespace Blotch
 		}
 
 		/// <summary>
-		/// Updates Eye, LookAt, etc. according to mouse and certain key input. Specifically:
+		/// Updates #Eye, #LookAt, etc. according to mouse and certain key input. Specifically:
 		/// Wheel=Dolly, CTRL-wheel=Zoom, Left-drag=Truck, Right-drag=Rotate, CTRL-left-drag=Pan, Esc=Reset.
 		/// Also, SHIFT causes all the previous controls to be fine rather than coarse. If CTRL is pressed
 		/// and mouse left or right button is clicked, then returns a ray into window
@@ -689,7 +888,7 @@ namespace Blotch
 			return ray;
 		}
 		/// <summary>
-		/// Sets Eye. LookAt, etc. back to default starting position.
+		/// Sets #Eye. #LookAt, etc. back to default starting position.
 		/// </summary>
 		public void ResetCamera()
 		{
@@ -752,7 +951,7 @@ namespace Blotch
 		}
 
 		/// <summary>
-		/// Defines a light. See the BlSprite.Lights field. The default BasicShader supports up to three lights.
+		/// Defines a light. See the #Lights field. The default BasicShader supports up to three lights.
 		/// </summary>
 		public class Light
 		{
@@ -786,7 +985,7 @@ namespace Blotch
 		}
 
 		/// <summary>
-		/// Returns the window coordinates of the specified sprite
+		/// Returns the window coordinates of the specified sprite.
 		/// </summary>
 		/// <param name="sprite">The sprite to get the window coordinates of</param>
 		/// <returns>The window coordinates of the sprite, in pixels</returns>
@@ -799,7 +998,7 @@ namespace Blotch
 		}
 
 		/// <summary>
-		/// Returns a BlTexture2D containing the specified text.
+		/// Returns a Texture2D containing the specified text.
 		/// It's up to the caller to Dispose the returned texture.
 		/// </summary>
 		/// <param name="text">The text to write to the texture</param>
@@ -834,39 +1033,67 @@ namespace Blotch
 			return renderTarget;
 		}
 		/// <summary>
-		/// Draws text on the window
+		/// Draws a texture in the window.
 		/// </summary>
-		/// <param name="text">The text to draw</param>
-		/// <param name="font">The font to use (typically created from SpriteFont content with Content.Load<SpriteFont>(...) )</param>
-		/// <param name="windowPos">The X and Y window location, in pixels</param>
+		/// <param name="texture">The texture to draw</param>
+		/// <param name="windowRect">The X and Y window location, in pixels</param>
 		/// <param name="color">Foreground color of the font</param>
-		public void DrawText(string text,SpriteFont font, Vector2 windowPos, Microsoft.Xna.Framework.Color? color = null)
+		public void DrawTexture(Texture2D texture, Rectangle windowRect, Microsoft.Xna.Framework.Color? color = null)
 		{
 			if (BlDebug.ShowThreadWarnings && CreationThread != Thread.CurrentThread.ManagedThreadId)
 				throw new Exception(String.Format("BlGraphicsDeviceManager.DrawText() was called by thread {0} instead of thread {1}", Thread.CurrentThread.ManagedThreadId, CreationThread));
 
-			if (MySpriteBatch == null)
-				MySpriteBatch = new SpriteBatch(GraphicsDevice);
+			if (SpriteBatch == null)
+				SpriteBatch = new SpriteBatch(GraphicsDevice);
 
 			if (color == null)
 				color = new Microsoft.Xna.Framework.Color(0xFFFFFFFF);
 
 			try
 			{
-				MySpriteBatch.Begin();
-				MySpriteBatch.DrawString(font, text, windowPos, (Microsoft.Xna.Framework.Color)color);
+				SpriteBatch.Begin();
+				SpriteBatch.Draw(texture, windowRect, (Microsoft.Xna.Framework.Color)color);
 			}
 			finally
 			{
-				MySpriteBatch.End();
+				SpriteBatch.End();
 			}
 		}
 		/// <summary>
-		/// Loads a texture directly from an image file
+		/// Draws text on the window.
+		/// </summary>
+		/// <param name="text">The text to draw</param>
+		/// <param name="font">The font to use (typically created from SpriteFont content with Content.Load<SpriteFont>(...) )</param>
+		/// <param name="windowPos">The X and Y window location, in pixels</param>
+		/// <param name="color">Foreground color of the font</param>
+		public void DrawText(string text, SpriteFont font, Vector2 windowPos, Microsoft.Xna.Framework.Color? color = null)
+		{
+			if (BlDebug.ShowThreadWarnings && CreationThread != Thread.CurrentThread.ManagedThreadId)
+				throw new Exception(String.Format("BlGraphicsDeviceManager.DrawText() was called by thread {0} instead of thread {1}", Thread.CurrentThread.ManagedThreadId, CreationThread));
+
+			if (SpriteBatch == null)
+				SpriteBatch = new SpriteBatch(GraphicsDevice);
+
+			if (color == null)
+				color = new Microsoft.Xna.Framework.Color(0xFFFFFFFF);
+
+			try
+			{
+				SpriteBatch.Begin();
+				SpriteBatch.DrawString(font, text, windowPos, (Microsoft.Xna.Framework.Color)color);
+			}
+			finally
+			{
+				SpriteBatch.End();
+			}
+		}
+		/// <summary>
+		/// Loads a texture directly from an image file.
 		/// </summary>
 		/// <param name="fileName">An image file of any standard type supported by MonoGame (jpg, png, etc.)</param>
+		/// <param name="mirrorY">If true, then mirror Y</param>
 		/// <returns>The texture that was loaded</returns>
-		public Texture2D LoadFromImageFile(string fileName)
+		public Texture2D LoadFromImageFile(string fileName,bool mirrorY=false)
 		{
 			if (BlDebug.ShowThreadWarnings && CreationThread != Thread.CurrentThread.ManagedThreadId)
 				throw new Exception(String.Format("BlGraphicsDeviceManager.LoadFromImageFile() was called by thread {0} instead of thread {1}", Thread.CurrentThread.ManagedThreadId, CreationThread));
@@ -876,6 +1103,31 @@ namespace Blotch
 			{
 				texture = Texture2D.FromStream(GraphicsDevice, fileStream);
 			}
+
+			if(mirrorY)
+			{
+				var totalPixels = texture.Width * texture.Height;
+				var pixels = new Color[totalPixels];
+
+				texture.GetData(pixels);
+
+				var width = texture.Width;
+				var height = texture.Height;
+
+				Parallel.For(0, width, (x) =>
+				{
+					Parallel.For(0, height/2, (y) =>
+					{
+						var i = x + width * y;
+						var im = x + width * (height - y - 1);
+						var p = pixels[i];
+						pixels[i] = pixels[im];
+						pixels[im] = p;
+					});
+				});
+				texture.SetData(pixels);
+			}
+
 			return texture;
 		}
 
@@ -887,10 +1139,10 @@ namespace Blotch
 		}
 
 		/// <summary>
-		/// This is automatically called once at the beginning of your Draw method. It calculates the latest View and
-		/// Projection settings according to the current camera specifications (Zoom, Aspect, Eye, LookAt, etc.), and
+		/// This is automatically called once at the beginning of your BlWindow3D#FrameDraw method. It calculates the latest #View and
+		/// #Projection settings according to the current camera specifications (#Zoom, #Aspect, #Eye, #LookAt, etc.), and
 		/// if firstCallInDraw is true it also may sleep in order to obey FramePeriod. It must also be called explicitly after
-		/// any changes to the camera settings made later in the Draw method. Only in the first call
+		/// any changes to the camera settings made later in the BlWindow3D#FrameDraw method. Only in the first call
 		/// should firstCallInDraw be true, and in any subsequent calls it should be false.
 		/// </summary>
 		/// <param name="firstCallInDraw">True indicates this method should also sleep in order to obey FramePeriod.</param>
@@ -969,8 +1221,8 @@ namespace Blotch
 		/// <summary>
 		/// Returns a deepcopy of the texture
 		/// </summary>
-		/// <param name="tex"></param>
-		/// <returns></returns>
+		/// <param name="tex">The texture to deepcopy</param>
+		/// <returns>A deepcopy of tex</returns>
 		public Texture2D CloneTexture2D(Texture2D tex)
 		{
 			if (BlDebug.ShowThreadWarnings && CreationThread != Thread.CurrentThread.ManagedThreadId)
@@ -1006,11 +1258,10 @@ namespace Blotch
 		/// <summary>
 		/// When finished with the object, you should call Dispose() from the same thread that created the object.
 		/// You can call this multiple times, but once is enough. If it isn't called before the object
-		/// becomes inaccessible, then the destructor will call it and, if BlDebug.EnableDisposeErrors is
+		/// becomes inaccessible, then the destructor will call it and, if BlDebug#EnableDisposeErrors is
 		/// true (it is true by default for Debug builds), then it will get an exception saying that it
 		/// wasn't called by the same thread that created it. This is because the platform's underlying
 		/// 3D library (OpenGL, etc.) often requires 3D resources to be managed only by one thread.
-		/// This inherits from MonoGame's GraphicsDeviceManager class.
 		/// </summary>
 		public new void Dispose()
 		{
@@ -1024,9 +1275,9 @@ namespace Blotch
 
 			GC.SuppressFinalize(this);
 
-			if (MySpriteBatch != null)
+			if (SpriteBatch != null)
 			{
-				MySpriteBatch.Dispose();
+				SpriteBatch.Dispose();
 			}
 
 			base.Dispose();

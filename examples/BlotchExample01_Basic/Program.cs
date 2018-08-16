@@ -14,7 +14,7 @@ namespace BlotchExample
         [STAThread]
         static void Main()
         {
-            using (var win = new GameExample())
+            using (var win = new Example())
                 win.Run();
         }
     }

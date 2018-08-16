@@ -1,19 +1,27 @@
 ﻿/*
-Blotch3D Copyright 1999-2018 Kelly Loum
+Blotch3D (formerly GWin3D) Copyright (c) 1999-2018 Kelly Loum, all rights reserved except those granted in the following license.
 
-Blotch3D is a C# 3D graphics library that notably simplifies 3D development.
+Microsoft Public License (MS-PL)
+This license governs use of the accompanying software. If you use the software, you
+accept this license. If you do not accept the license, do not use the software.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation
-files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy,
-modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following conditions:
+1. Definitions
+The terms "reproduce," "reproduction," "derivative works," and "distribution" have the
+same meaning here as under U.S. copyright law.
+A "contribution" is the original software, or any additions or changes to the software.
+A "contributor" is any person that distributes its contribution under this license.
+"Licensed patents" are a contributor's patent claims that read directly on its contribution.
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+2. Grant of Rights
+(A) Copyright Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, each contributor grants you a non-exclusive, worldwide, royalty-free copyright license to reproduce its contribution, prepare derivative works of its contribution, and distribute its contribution or any derivative works that you create.
+(B) Patent Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, each contributor grants you a non-exclusive, worldwide, royalty-free license under its licensed patents to make, have made, use, sell, offer for sale, import, and/or otherwise dispose of its contribution in the software or derivative works of the contribution in the software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+3. Conditions and Limitations
+(A) No Trademark License- This license does not grant you rights to use any contributors' name, logo, or trademarks.
+(B) If you bring a patent claim against any contributor over patents that you claim are infringed by the software, your patent license from such contributor to the software ends automatically.
+(C) If you distribute any portion of the software, you must retain all copyright, patent, trademark, and attribution notices that are present in the software.
+(D) If you distribute any portion of the software in source code form, you may do so only under this license by including a complete copy of this license with your distribution. If you distribute any portion of the software in compiled or object code form, you may only do so under a license that complies with this license.
+(E) The software is licensed "as-is." You bear the risk of using it. The contributors give no express warranties, guarantees or conditions. You may have additional consumer rights under your local laws which this license cannot change. To the extent permitted under your local laws, the contributors exclude the implied warranties of merchantability, fitness for a particular purpose and non-infringement.
 */
 
 
@@ -26,10 +34,9 @@ namespace Blotch
 {
 	/// <summary>
 	/// This static class holds the debug flags.
-	/// Initial flag values are often enabled for Debug builds and disabled for Release builds.
+	/// Many flags are initialized according to whether its a Debug build or Release build.
 	/// Some flags enable exceptions for probable errors, and many flags cause warning messages to be sent
-	/// to the console window, if it exist. For this reason you should test your app as a
-	/// debug build console app.
+	/// to the console window, if there is one. For this reason you should first test your app as a debug build console app.
 	/// </summary>
 	public static class BlDebug
 	{
@@ -40,7 +47,7 @@ namespace Blotch
 
 		/// <summary>
 		/// If true, this causes warnings related to thread issues to appear. For example, it will cause warnings to appear when
-		/// certain Blotch objects are not disposed by the same thread that created them. Default is true
+		/// certain Blotch3D objects are not disposed by the same thread that created them. Default is true
 		/// for debug, false for release build. 
 		/// </summary>
 		public static bool ShowThreadWarnings = true;
@@ -53,9 +60,10 @@ namespace Blotch
 #endif
 		}
 		/// <summary>
-		/// Display a debug message, and save it to the logfile if writeToLogFile is true.
+		/// Display a debug message that includes the ThreadId, DateTime, SrcFile, SrcLineNumber, CallingMethod, and Message.
+		/// 
 		/// Call it like this, for example:
-		/// if (Debug.drawables) Debug.Message(String.Format("Drawables: {0}", runModeDrawables));
+		/// BlDebug.Message(String.Format("MyInfo: {0}", Info));
 		/// </summary>
 		/// <param name="message">The text message to log</param>
 		public static void Message(
@@ -101,7 +109,7 @@ namespace Blotch
 			/*
 			if (writeToLogFile)
 			{
-				using (var stream = new StreamWriter(logFilePath))
+				using (var stream = new StreamWriter(logFilePath,true))
 				{
 					stream.WriteLine(msg);
 				}
